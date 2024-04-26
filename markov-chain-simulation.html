@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Markov Chain Monte Carlo Simulation</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        #info {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="markovCanvas" width="800" height="600"></canvas>
+    <div id="info"></div>
+    <script>
+        const canvas = document.getElementById('markovCanvas');
+        const ctx = canvas.getContext('2d');
+        const info = document.getElementById('info');
+
+        // Define a transition matrix; change this as needed
+        const transitionMatrix = [
+            [0.2, 0.5, 0.3],
+            [0.6, 0.2, 0.2],
+            [0.2, 0.7, 0.1],
+        ];
+
+        const numStates = transitionMatrix.length;
+        let currentState = 0;
+        let stateCounts = new Array(numStates).fill(0);
+        stateCounts[currentState]++;
+        const numSteps = 100000;
+
+        // Calculate positions for states on a circle
+        function getPositions(numStates) {
+            const positions = [];
+            const centerX = 300;
+            const centerY = 150;
+            const radius = Math.min(centerX, centerY) / 2;
+            for (let i = 0; i < numStates; i++) {
+                const angle = 2 * Math.PI * i / numStates;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                positions.push({ x, y });
+            }
+            return positions;
+        }
+
+        const positions = getPositions(numStates);
+
+        // Function to simulate one step in the Markov chain
+        function simulateStep() {
+            let nextState = 0;
+            const r = Math.random();
+            let cumulativeProbability = 0.0;
+
+            for (let i = 0; i < transitionMatrix[currentState].length; i++) {
+                cumulativeProbability += transitionMatrix[currentState][i];
+                if (r <= cumulativeProbability) {
+                    nextState = i;
+                    break;
+                }
+            }
+
+            currentState = nextState;
+            stateCounts[currentState]++;
+        }
+
+        // Function to draw the Markov chain diagram
+        function drawChain() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            positions.forEach((pos, index) => {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 30, 0, 2 * Math.PI);
+                ctx.fillStyle = currentState === index ? 'orange' : 'skyblue';
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = 'black';
+                ctx.fillText(`State ${index}`, pos.x - 15, pos.y + 45);
+
+                positions.forEach((target, targetIndex) => {
+                    if (index !== targetIndex || transitionMatrix[index][targetIndex] > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y);
+                        ctx.lineTo(target.x, target.y);
+                        ctx.stroke();
+                    }
+                });
+            });
+
+            // Draw the distribution bars
+            drawBars();
+            drawMatrix();
+        }
+
+        // Function to draw the bars for state frequencies
+        function drawBars() {
+            const maxCount = Math.max(...stateCounts);
+            const barWidth = 50;
+            stateCounts.forEach((count, index) => {
+                const barHeight = (count / maxCount) * 100;
+                ctx.fillStyle = 'skyblue';
+                ctx.fillRect(index * barWidth * 2, 600 - barHeight, barWidth, barHeight);
+                ctx.fillStyle = 'black';
+                ctx.fillText(`State ${index}: ${(count / stateCounts.reduce((a, b) => a + b, 0) * 100).toFixed(2)}%`, index * barWidth * 2, 600 - barHeight - 10);
+            });
+        }
+
+				// Function to draw the transition matrix below everything else
+        function drawMatrix() {
+            const startX = 25;
+            const startY = 100;
+            ctx.fillStyle = 'black';
+            ctx.font = '12px Arial';
+            ctx.fillText('Transition Matrix:', startX, startY - 20);
+            transitionMatrix.forEach((row, i) => {
+                row.forEach((value, j) => {
+                    ctx.fillText(value.toFixed(2), startX + j * 50, startY + i * 30);
+                });
+            });
+        }
+
+        // Function to run the simulation
+        function runSimulation() {
+            let step = 0;
+            function stepSimulation() {
+                simulateStep();
+                step++;
+                drawChain();
+                info.innerHTML = `Current State: ${currentState} <br> Step: ${step} / ${numSteps}`;
+                requestAnimationFrame(stepSimulation);
+            }
+            stepSimulation();
+        }
+
+        runSimulation();
+    </script>
+</body>
+</html>
