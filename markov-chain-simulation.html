@@ -21,11 +21,11 @@
         const ctx = canvas.getContext('2d');
         const info = document.getElementById('info');
 
-        // Define a transition matrix; change this as needed
         const transitionMatrix = [
-            [0.2, 0.5, 0.3],
-            [0.6, 0.2, 0.2],
-            [0.2, 0.7, 0.1],
+            [0.1, 0.3, 0.4, 0.2],  // Transitions from State 0
+            [0.2, 0.2, 0.3, 0.3],  // Transitions from State 1
+            [0.4, 0.1, 0.2, 0.3],  // Transitions from State 2
+            [0.3, 0.3, 0.1, 0.3]   // Transitions from State 3
         ];
 
         const numStates = transitionMatrix.length;
@@ -37,8 +37,8 @@
         // Calculate positions for states on a circle
         function getPositions(numStates) {
             const positions = [];
-            const centerX = 300;
-            const centerY = 150;
+            const centerX = 400;
+            const centerY = 250;
             const radius = Math.min(centerX, centerY) / 2;
             for (let i = 0; i < numStates; i++) {
                 const angle = 2 * Math.PI * i / numStates;
@@ -94,6 +94,7 @@
             // Draw the distribution bars
             drawBars();
             drawMatrix();
+            drawStationaryDistribution();
         }
 
         // Function to draw the bars for state frequencies
@@ -109,7 +110,7 @@
             });
         }
 
-				// Function to draw the transition matrix below everything else
+        // Function to draw the transition matrix below everything else
         function drawMatrix() {
             const startX = 25;
             const startY = 100;
@@ -121,6 +122,50 @@
                     ctx.fillText(value.toFixed(2), startX + j * 50, startY + i * 30);
                 });
             });
+        }
+
+        // Function to draw the stationary distribution
+        function drawStationaryDistribution() {
+            const pi = calculateStationaryDistribution();
+            const startX = 25;
+            const startY = 400;
+            ctx.fillStyle = 'black';
+            ctx.font = '12px Arial';
+            ctx.fillText('Stationary Distribution π:', startX, startY - 20);
+            pi.forEach((value, i) => {
+                ctx.fillText(`π(${i}): ${value.toFixed(4)}`, startX, startY + i * 20);
+            });
+        }
+
+        // Calculate the stationary distribution from the transition matrix
+        function calculateStationaryDistribution() {
+            const size = numStates;
+            let pi = new Array(size).fill(1 / size); // Initial guess: uniform distribution
+            let newPi = new Array(size).fill(0);
+            let error = 1;
+            const tolerance = 1e-6;
+
+            while (error > tolerance) {
+                error = 0;
+                for (let i = 0; i < size; i++) {
+                    newPi[i] = 0;
+                    for (let j = 0; j < size; j++) {
+                        newPi[i] += pi[j] * transitionMatrix[j][i];
+                    }
+                }
+
+                // Calculate the error as the sum of absolute differences
+                for (let i = 0; i < size; i++) {
+                    error += Math.abs(newPi[i] - pi[i]);
+                }
+
+                // Update pi to newPi
+                for (let i = 0; i < size; i++) {
+                    pi[i] = newPi[i];
+                }
+            }
+
+            return pi;
         }
 
         // Function to run the simulation
